@@ -7,7 +7,8 @@ var bodyParser = require("body-parser");
 const Port=process.env.Port ||4000
 const U_DB=require('./Db/dbConfig');
 const P_DB=require('./Db/ProDbconfig');
-
+const CartDB=require('./Db/Cartdb');
+const OrderDB=require('./Db/Orderdb')
 
 const cors=require('cors');
 app.use(cors());
@@ -139,6 +140,105 @@ app.post('/getpro/pro',async(req,resp)=>{
     console.log(data);
     resp.send(data)
 })
+
+
+
+//Add to cart
+app.post("/cart",async(req,resp)=>{
+    console.log("Cart_item",req.body);
+    let data=await CartDB.find({
+        U_id:req.body.mail
+    })
+    console.log("data:",data);
+    resp.send(data)
+})
+//adding a product to cart
+app.post("/AddToCart",async(req,resp)=>{
+    let data=await CartDB.create({
+        U_id:req.body.u_Email,
+        U_qantity:1,
+        pro_data:req.body.maindata
+    })
+    if(data){
+        resp.send({msg:"Item Is Added To Cart"});
+        console.log("Item Is Added To Cart");
+
+    }
+    else{
+        resp.send({msg:"Somthing Is Wrong"});
+        console.log("Somthing is Wrong in Addto Cart Api");
+    }
+})
+//deleting a cart item
+app.delete("/deleteProduct",async(req,resp)=>{
+    let data=await CartDB.deleteOne({
+        _id:req.body.Prodict_id
+    })
+    console.log(data);
+    resp.send({msg:"Done"});
+})
+//quantity increasing
+app.put("/increaseQuantitty",async(req,resp)=>{
+    let data=await CartDB.findOne({
+        _id:req.body.Prodict_id
+    })
+    if(data.U_qantity>0){
+        if(req.body.mode=='dec'){
+            let dat=await CartDB.updateOne({
+                _id:req.body.Prodict_id,
+            },{
+                $set:{U_qantity:data.U_qantity-1}
+            })
+            console.log("Quantity decreasing");
+            resp.send({msg:"Quantity decreasing"});
+
+        
+         }
+         else if(req.body.mode=='inc'){
+            let dat=await CartDB.updateOne({
+                _id:req.body.Prodict_id,
+            },{
+                $set:{U_qantity:data.U_qantity+1}
+            })
+            console.log("Quantity increasing");
+            resp.send({msg:"Quantity increasing"});
+
+        }
+    }
+
+    else{
+        resp.send({msg:"Quantity Should Be Greater Than 0"});
+    }
+ 
+    
+
+})
+
+//Order Api
+app.post("/Orders",async(req,resp)=>{
+    let data=await OrderDB.find({
+        U_id:req.body.u_Email,
+
+    })
+    console.log("Order Api");
+    resp.send(data)
+})
+
+app.post('/PlaceOrder',async(req,resp)=>{
+    var someDate = new Date();
+    var numberOfDaysToAdd = 14;
+    var result = someDate.setDate(someDate.getDate() + numberOfDaysToAdd);
+    let data=await OrderDB.create({
+        U_id:req.body.U_Id,
+        Order_qantity:req.body.U_Q,
+        Order_status:'placed',
+        Order_orderDate:[req.body.Order_date,new Date(result)],
+        Order_data:req.body.Order_data,
+    })
+    console.log("PlaceOrder");
+    resp.send({msg:"Done"})
+})
+
 
 app.listen(Port,()=>{
     console.log(`Your Api Is Runing On ${Port}`)
